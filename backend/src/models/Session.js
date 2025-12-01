@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const MessageSchema = new mongoose.Schema({
-  role: { type: String, enum: ['user', 'bot'], required: true },
-  content: { type: String, required: true },
+  sender: { type: String, enum: ['user', 'bot'], required: true },
+  text: { type: String, required: true },
   timestamp: { type: Date, default: Date.now }
 });
 
@@ -12,4 +12,4 @@ const SessionSchema = new mongoose.Schema({
   lastUpdated: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Session', SessionSchema);
+export default mongoose.model('Session', SessionSchema);

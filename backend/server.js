@@ -1,10 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./src/config/db.js";
-import chatRoutes from './src/routes/chat.js';
-
-
-
+import chatRoutes from "./src/routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -12,6 +10,11 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// Enable CORS for all origins (for testing)
+app.use(cors());
+
+app.use(express.json());
 
 
 

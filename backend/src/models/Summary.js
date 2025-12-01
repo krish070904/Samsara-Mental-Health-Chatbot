@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const SummarySchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
@@ -7,4 +7,4 @@ const SummarySchema = new mongoose.Schema({
   lastUpdated: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("Summary", SummarySchema);
+export default mongoose.model("Summary", SummarySchema);
