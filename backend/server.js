@@ -11,7 +11,6 @@ connectDB();
 
 const app = express();
 
-// Enable CORS for all origins (for testing)
 app.use(cors());
 
 app.use(express.json());
