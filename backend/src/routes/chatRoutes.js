@@ -8,7 +8,20 @@ import buildPrompt from "../utils/buildPrompt.js";
 const router = express.Router();
 
 router.post("/chat", async (req, res) => {
-  const { userId, message } = req.body;
+  const { userId, message, name, age, gender } = req.body;
+
+  console.log("👤 Incoming Profile:", { name, age, gender });
+
+  if (name || age || gender) {
+    let summary = await Summary.findOne({ userId });
+    if (!summary) {
+      summary = new Summary({ userId });
+    }
+    if (name) summary.name = name;
+    if (age) summary.age = age;
+    if (gender) summary.gender = gender;
+    await summary.save();
+  }
 
   let session = await Session.findOne({ userId });
   if (!session) {
@@ -22,20 +35,20 @@ router.post("/chat", async (req, res) => {
   });
 
   const userSummary = await Summary.findOne({ userId });
-
+  
   const prompt = buildPrompt(session.messages, userSummary);
 
   let response;
   try {
-    response = await axios.post("https://proctodeal-furcately-teresa.ngrok-free.dev/chat", {
-      message: prompt,
+
+    response = await axios.post("https://nonzonated-victoria-hilariously.ngrok-free.dev/generate", {
+      messages: [{ role: "user", content: prompt }],
     });
   } catch (err) {
-    console.error("❌ AI Model Error:", err.message);
+    console.error("AI Model Error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 
-  console.log("📥 AI Model Response:", JSON.stringify(response.data, null, 2));
 
   let rawResponse =
     response.data.response ||
@@ -43,15 +56,15 @@ router.post("/chat", async (req, res) => {
     response.data.message ||
     response.data.output ||
     response.data.text ||
-    response.data?.choices?.[0]?.message?.content ||
     (typeof response.data === 'string' ? response.data : null) ||
     "Model returned no response.";
 
   let botReply = rawResponse;
   
+
   const separators = [
-    "Now reply to the user's most recent message in a kind, helpful, and non-judgmental way.\n",
     "Now reply to the user's most recent message",
+    "Now reply to the user",
     "CONVERSATION CONTEXT:",
   ];
   
@@ -62,25 +75,24 @@ router.post("/chat", async (req, res) => {
       break;
     }
   }
+
+
+  botReply = botReply.replace(/^(Ai Guru:|Assistant:|AI:|Bot:)/i, "").trim();
+
   
-  if (botReply.includes("You are a supportive and empathetic mental health assistant")) {
+  if (botReply.includes("You are Ai Guru")) {
     const lines = botReply.split('\n');
-    const actualReply = lines
+    botReply = lines
       .filter(line => line.trim() && 
-              !line.includes("You are a supportive") && 
-              !line.includes("USER SUMMARY") &&
-              !line.includes("CONVERSATION CONTEXT") &&
-              !line.includes("Keep responses safe") &&
-              !line.includes("Avoid medical claims"))
+              !line.includes("You are Ai Guru") && 
+              !line.includes("USER SUMMARY") && 
+              !line.includes("CONVERSATION CONTEXT"))
       .join('\n')
       .trim();
-    
-    if (actualReply) {
-      botReply = actualReply;
-    }
   }
 
-  console.log("✅ Extracted Bot Reply:", botReply);
+ 
+  botReply = botReply.replace(/([^\w\s,.?!'"]\s*){3,}/g, "");
 
   session.messages.push({
     sender: "bot",
@@ -88,10 +100,7 @@ router.post("/chat", async (req, res) => {
     timestamp: new Date(),
   });
 
-  session.messages = session.messages.slice(-50);
-  session.lastUpdated = new Date();
   await session.save();
-
   await updateGlobalSummary(userId, message, botReply);
 
   res.json({ reply: botReply });
